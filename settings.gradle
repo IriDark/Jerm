@@ -1,15 +1,17 @@
-pluginManagement{
-    repositories{
+pluginManagement {
+    repositories {
         gradlePluginPortal()
-        maven{
+        maven { url = 'https://maven.parchmentmc.org' }
+        maven { url = 'https://repo.spongepowered.org/maven' }
+        maven {
             name = 'MinecraftForge'
             url = 'https://maven.minecraftforge.net/'
         }
     }
 }
 
-plugins{
-    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.7.0'
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.5.0'
 }
 
-rootProject.name = 'jerm'
+rootProject.name = "Jerm"

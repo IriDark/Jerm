@@ -1,4 +1,4 @@
-package github.iri.jem;
+package github.iri.jerm;
 
 import net.minecraft.resources.*;
 

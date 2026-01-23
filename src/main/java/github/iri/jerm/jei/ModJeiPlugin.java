@@ -1,6 +1,6 @@
-package github.iri.jem.jei;
+package github.iri.jerm.jei;
 
-import github.iri.jem.*;
+import github.iri.jerm.*;
 import mezz.jei.api.*;
 import mezz.jei.api.constants.*;
 import mezz.jei.api.ingredients.*;
@@ -50,22 +50,20 @@ public class ModJeiPlugin implements IModPlugin{
         .filter(item -> !ForgeRegistries.ITEMS.getKey(item).getNamespace().equals("minecraft"))
         .map(item -> {
             ItemStack stack = new ItemStack(item);
-            Item repairItem = item.getCraftingRemainingItem();
             if(item instanceof ArmorItem armorItem) {
                 Ingredient repairIngredient = armorItem.getMaterial().getRepairIngredient();
-                if(repairIngredient == Ingredient.EMPTY || repairIngredient.getItems().length == 0) return null;
+                if(repairIngredient == null || repairIngredient == Ingredient.EMPTY || repairIngredient.getItems().length == 0) return null;
                 return new RepairData(repairIngredient, stack);
             }
 
             if(item instanceof TieredItem tieredItem){
                 Ingredient repairIngredient = tieredItem.getTier().getRepairIngredient();
-                if(repairIngredient == Ingredient.EMPTY || repairIngredient.getItems().length == 0) return null;
+                if(repairIngredient == null || repairIngredient == Ingredient.EMPTY || repairIngredient.getItems().length == 0) return null;
                 return new RepairData(repairIngredient, stack);
             }
 
             return null;
-        })
-        .filter(Objects::nonNull);
+        }).filter(Objects::nonNull);
     }
 
     //copy of JEI

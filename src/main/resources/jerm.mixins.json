@@ -1,7 +1,7 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "github.iri.jem.mixin",
+  "package": "github.iri.jerm.mixin",
   "compatibilityLevel": "JAVA_8",
   "refmap": "jerm.refmap.json",
   "mixins": [

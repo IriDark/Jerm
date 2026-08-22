@@ -93,8 +93,6 @@ public class ModJeiPlugin implements IModPlugin{
 
     @Override
     public void onRuntimeAvailable(IJeiRuntime jeiRuntime) {
-        if (!ModList.get().isLoaded("repair_override")) return;
-
         IRecipeManager recipeManager = jeiRuntime.getRecipeManager();
         List<IJeiAnvilRecipe> allAnvilRecipes = recipeManager.createRecipeLookup(RecipeTypes.ANVIL).get().toList();
         List<IJeiAnvilRecipe> recipesToHide = new ArrayList<>();

@@ -1,111 +1,97 @@
-buildscript{
-    repositories{
-        maven { url = 'https://maven.minecraftforge.net' }
-        maven{ url = 'https://repo.spongepowered.org/repository/maven-public/' }
-        maven { url = 'https://maven.parchmentmc.org' }
-        mavenCentral()
-    }
-    dependencies{
-        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '6.0.+', changing: true
-        classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
-        classpath 'org.parchmentmc:librarian:1.+'
-    }
-}
-
-plugins{
+plugins {
+    id 'java-library'
     id 'eclipse'
     id 'idea'
-    id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
-    id 'org.parchmentmc.librarian.forgegradle' version '1.+'
+    id 'net.neoforged.moddev' version '2.0.144'
 }
-
-apply plugin: 'org.spongepowered.mixin'
-
 
 group = mod_group_id
 version = mod_version
-base{
+base {
     archivesName = mod_id
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
-minecraft{
-    mappings channel: 'parchment', version: '2023.09.03-1.20.1'
-    copyIdeResources = true
-    runs{
-        configureEach{
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-            mods{
-                "${mod_id}"{
-                    source sourceSets.main
-                }
-            }
-        }
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
-        client{
-            property 'forge.enabledGameTestNamespaces', mod_id
-        }
+neoForge {
+    version = project.neo_version
 
-        server{
-            property 'forge.enabledGameTestNamespaces', mod_id
-            args '--nogui'
-        }
+    parchment {
+        mappingsVersion = '2024.11.17'
+        minecraftVersion = '1.21.1'
+    }
 
-        gameTestServer{
-            property 'forge.enabledGameTestNamespaces', mod_id
+    runs {
+        client {
+            client()
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
+        server {
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+        gameTestServer {
+            type = "gameTestServer"
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+        data {
+            data()
+            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+    }
 
-        data{
-            workingDirectory project.file('run-data')
-            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
         }
     }
 }
 
-mixin{
-    add sourceSets.main, "${mod_id}.refmap.json"
+sourceSets.main.resources { srcDir 'src/generated/resources' }
 
-    config "${mod_id}.mixins.json"
+repositories {
+    maven { url "https://maven.parchmentmc.org" }
+    maven { url "https://maven.blamejared.com" }
+    maven { url "https://api.modrinth.com/maven" }
+    maven { url "https://cursemaven.com" }
 }
 
-sourceSets.main.resources{ srcDir 'src/generated/resources' }
-repositories{
-    maven { url "https://maven.blamejared.com"}
-    maven { url "https://cursemaven.com"}
+dependencies {
+    compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
+    runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
 }
 
-dependencies{
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-    compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
-    runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
-    implementation fg.deobf("curse.maven:repair-override-1544105:8095070")
-    runtimeOnly fg.deobf("curse.maven:valoria-698244:8139302")
-    runtimeOnly fg.deobf("curse.maven:curios-309927:6418456")
-    runtimeOnly fg.deobf("curse.maven:geckolib-388172:8285794")
-    runtimeOnly fg.deobf("curse.maven:tridot-1239146:8067437")
-    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+tasks.withType(ProcessResources).configureEach {
+    var replaceProperties = [
+            minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
+            neo_version: neo_version, neo_version_range: neo_version_range,
+            loader_version_range: loader_version_range,
+            mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
+            mod_authors: mod_authors, mod_description: mod_description,
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand replaceProperties + [project: project]
+    }
 }
 
-processResources {
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-
-jar {
+tasks.named('jar', Jar).configure {
     manifest {
-        attributes(["Specification-Title"     : mod_id,
-                    "Specification-Vendor"    : mod_authors,
-                    "Specification-Version"   : "1", // We are version 1 of ourselves
-                    "Implementation-Title"    : project.name,
-                    "Implementation-Version"  : project.jar.archiveVersion,
-                    "Implementation-Vendor"   : mod_authors,
-                    "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")])
+        attributes([
+                'Specification-Title'     : mod_id,
+                'Specification-Vendor'    : mod_authors,
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Vendor'   : mod_authors,
+                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
     }
-
-    finalizedBy 'reobfJar'
 }
 
-tasks.withType(JavaCompile).configureEach{
-    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
 }

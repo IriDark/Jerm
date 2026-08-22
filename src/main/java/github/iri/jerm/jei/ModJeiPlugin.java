@@ -4,12 +4,9 @@ import github.iri.jerm.*;
 import mezz.jei.api.*;
 import mezz.jei.api.constants.*;
 import mezz.jei.api.ingredients.subtypes.*;
-import mezz.jei.api.recipe.IRecipeManager;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.vanilla.*;
 import mezz.jei.api.registration.*;
-import mezz.jei.api.runtime.IJeiRuntime;
-import net.denlille.repair_override.data.RepairOverrideRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.*;
@@ -19,15 +16,14 @@ import net.minecraft.world.inventory.AnvilMenu;
 import net.minecraft.world.item.*;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.registries.*;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 import java.util.*;
 import java.util.stream.*;
 
 @JeiPlugin
 public class ModJeiPlugin implements IModPlugin{
-    private static final ResourceLocation JEI = new ResourceLocation(Jerm.MODID, "jei_plugin");
+    private static final ResourceLocation JEI = ResourceLocation.fromNamespaceAndPath(Jerm.MODID, "jei_plugin");
     public static final RecipeType<IJeiAnvilRecipe> JERM_REPAIR = RecipeType.create(Jerm.MODID, "jerm_repair", IJeiAnvilRecipe.class);
 
     @Override
@@ -60,23 +56,12 @@ public class ModJeiPlugin implements IModPlugin{
     }
 
     private static Stream<RepairData> getRepairData() {
-        boolean isOverrideLoaded = ModList.get().isLoaded("repair_override");
-        return ForgeRegistries.ITEMS.getValues().stream()
-        .filter(Item::canBeDepleted)
+        return BuiltInRegistries.ITEM.stream()
         .map(item -> {
             ItemStack stack = new ItemStack(item);
-            if(isOverrideLoaded) {
-                Ingredient repairIngredient = RepairOverrideRegistry.get(item);
-                if (!isRepairIngredientNull(repairIngredient)) {
-                    if (Arrays.stream(repairIngredient.getItems()).anyMatch(entry -> item.isValidRepairItem(stack, entry))) {
-                        Jerm.LOGGER.debug("Registered {} override with repair ingredient {}", stack, repairIngredient.getItems());
-                        return new RepairData(repairIngredient, stack);
-                    }
-                }
-            }
-
+            if(!stack.isDamageableItem()) return null;
             if(item instanceof ArmorItem armorItem) {
-                Ingredient repairIngredient = armorItem.getMaterial().getRepairIngredient();
+                Ingredient repairIngredient = armorItem.getMaterial().value().repairIngredient().get();
                 if(isRepairIngredientNull(repairIngredient)) return null;
                 return new RepairData(repairIngredient, stack);
             }
@@ -91,27 +76,6 @@ public class ModJeiPlugin implements IModPlugin{
         }).filter(Objects::nonNull);
     }
 
-    @Override
-    public void onRuntimeAvailable(IJeiRuntime jeiRuntime) {
-        IRecipeManager recipeManager = jeiRuntime.getRecipeManager();
-        List<IJeiAnvilRecipe> allAnvilRecipes = recipeManager.createRecipeLookup(RecipeTypes.ANVIL).get().toList();
-        List<IJeiAnvilRecipe> recipesToHide = new ArrayList<>();
-        for (IJeiAnvilRecipe recipe : allAnvilRecipes) {
-            ResourceLocation recipeId = recipe.getUid();
-            if (recipeId != null && recipeId.getNamespace().equals("minecraft")) {
-                String path = recipeId.getPath();
-                if (path.startsWith("materials_repair.") || path.startsWith("self_repair.")) {
-                    recipesToHide.add(recipe);
-                }
-            }
-        }
-
-        if (!recipesToHide.isEmpty()) {
-            recipeManager.hideRecipes(RecipeTypes.ANVIL, recipesToHide);
-            Jerm.LOGGER.debug("Hid {} vanilla anvil recipes to prevent JEI duplicates", recipesToHide.size());
-        }
-    }
-
     private static boolean isRepairIngredientNull(Ingredient repairIngredient) {
         return repairIngredient == null || repairIngredient.isEmpty();
     }
@@ -124,11 +88,8 @@ public class ModJeiPlugin implements IModPlugin{
         Ingredient repairIngredient = repairData.repairIngredient();
         List<ItemStack> repairables = repairData.repairables();
         List<ItemStack> repairMaterials = List.of(repairIngredient.getItems());
-        var manager = registration.getIngredientManager();
         var vanillaRecipeFactory = registration.getVanillaRecipeFactory();
-        var ingredientHelper = manager.getIngredientHelper(VanillaTypes.ITEM_STACK);
         return repairables.stream().mapMulti((itemStack, consumer) -> {
-            String ingredientIdPath = ResourceLocationUtil.sanitizePath(ingredientHelper.getUniqueId(itemStack, UidContext.Recipe));
             ItemStack damagedThreeQuarters = itemStack.copy();
             damagedThreeQuarters.setDamageValue(damagedThreeQuarters.getMaxDamage() * 3 / 4);
             ItemStack damagedHalf = itemStack.copy();
@@ -136,23 +97,22 @@ public class ModJeiPlugin implements IModPlugin{
 
             var damagedThreeQuartersSingletonList = List.of(damagedThreeQuarters);
 
-            IJeiAnvilRecipe repairWithSame = vanillaRecipeFactory.createAnvilRecipe(damagedThreeQuartersSingletonList, damagedThreeQuartersSingletonList, List.of(damagedHalf), new ResourceLocation(Jerm.MODID, "self_repair." + ingredientIdPath));
+            IJeiAnvilRecipe repairWithSame = vanillaRecipeFactory.createAnvilRecipe(damagedThreeQuartersSingletonList, damagedThreeQuartersSingletonList, List.of(damagedHalf));
             consumer.accept(repairWithSame);
             if (!repairMaterials.isEmpty()) {
                 ItemStack damagedFully = itemStack.copy();
                 damagedFully.setDamageValue(damagedFully.getMaxDamage());
-                IJeiAnvilRecipe repairWithMaterial = vanillaRecipeFactory.createAnvilRecipe(List.of(damagedFully), repairMaterials, damagedThreeQuartersSingletonList, new ResourceLocation(Jerm.MODID, "materials_repair." + ingredientIdPath));
+                IJeiAnvilRecipe repairWithMaterial = vanillaRecipeFactory.createAnvilRecipe(List.of(damagedFully), repairMaterials, damagedThreeQuartersSingletonList);
                 consumer.accept(repairWithMaterial);
             }
 
             ItemStack renamedItem = itemStack.copy();
-            renamedItem.setHoverName(Component.literal("Amazing ").append(itemStack.getHoverName()));
+            renamedItem.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, Component.literal("Amazing ").append(itemStack.getHoverName()));
 
             IJeiAnvilRecipe renameRecipe = vanillaRecipeFactory.createAnvilRecipe(
                     List.of(itemStack.copy()),
                     List.of(new ItemStack(Items.NAME_TAG)),
-                    List.of(renamedItem),
-                    new ResourceLocation(Jerm.MODID, "rename." + ingredientIdPath)
+                    List.of(renamedItem)
             );
             consumer.accept(renameRecipe);
         });

@@ -3,13 +3,16 @@ package github.iri.jerm.jei;
 import mezz.jei.api.constants.RecipeTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
+import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotDrawablesView;
 import mezz.jei.api.gui.ingredient.IRecipeSlotView;
 import mezz.jei.api.gui.placement.HorizontalAlignment;
 import mezz.jei.api.gui.widgets.IRecipeExtrasBuilder;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
+import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.AbstractRecipeCategory;
+import mezz.jei.api.recipe.category.IRecipeCategory;
 import mezz.jei.api.recipe.vanilla.IJeiAnvilRecipe;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -22,18 +25,12 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Optional;
 
-public class JermRepairCategory extends AbstractRecipeCategory<IJeiAnvilRecipe> {
+public class JermRepairCategory  extends AbstractRecipeCategory<IJeiAnvilRecipe> {
     private static final String leftSlotName = "leftSlot";
     private static final String rightSlotName = "rightSlot";
 
     public JermRepairCategory(IGuiHelper guiHelper) {
-        super(
-                ModJeiPlugin.JERM_REPAIR,
-                Component.translatable("container.repair"),
-                guiHelper.createDrawableItemLike(Blocks.ANVIL),
-                125,
-                38
-        );
+        super(ModJeiPlugin.JERM_REPAIR, Component.translatable("container.repair"), guiHelper.createDrawableItemLike(Blocks.ANVIL), 125, 38);
     }
 
     @Override

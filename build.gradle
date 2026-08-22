@@ -30,7 +30,7 @@ base{
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 minecraft{
-    mappings channel: 'parchment', version: '2022.08.14-1.19.2'
+    mappings channel: 'parchment', version: '2022.11.06-1.18.2'
     copyIdeResources = true
     runs{
         configureEach{
@@ -79,10 +79,9 @@ repositories{
 
 dependencies{
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-    compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
-    compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}")
-    runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
-    runtimeOnly fg.deobf("maven.modrinth:farmers-delight:1.19.2-1.2.4")
+    compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}:${jei_version}:api")
+    runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}:${jei_version}")
+    runtimeOnly fg.deobf("maven.modrinth:farmers-delight:1.18.2-1.2.3")
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 }
 

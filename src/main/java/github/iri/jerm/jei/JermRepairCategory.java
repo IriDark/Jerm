@@ -1,11 +1,10 @@
 package github.iri.jerm.jei;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import mezz.jei.api.constants.RecipeTypes;
+import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
-import mezz.jei.api.gui.ingredient.IRecipeSlotView;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
@@ -17,6 +16,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
@@ -37,7 +37,13 @@ public class JermRepairCategory implements IRecipeCategory<IJeiAnvilRecipe> {
         background = guiHelper.drawableBuilder(guiVanilla, 0, 168, 125, 18)
                 .addPadding(0, 20, 0, 0)
                 .build();
-        this.icon = guiHelper.createDrawableItemStack(new ItemStack(Blocks.ANVIL));
+        this.icon = guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK, new ItemStack(Blocks.ANVIL));
+    }
+
+    @SuppressWarnings("removal")
+    @Override
+    public ResourceLocation getUid() {
+        return ModJeiPlugin.JERM_REPAIR.getUid();
     }
 
     @Override
@@ -45,9 +51,15 @@ public class JermRepairCategory implements IRecipeCategory<IJeiAnvilRecipe> {
         return ModJeiPlugin.JERM_REPAIR;
     }
 
+    @SuppressWarnings("removal")
+    @Override
+    public Class<? extends IJeiAnvilRecipe> getRecipeClass() {
+        return IJeiAnvilRecipe.class;
+    }
+
     @Override
     public Component getTitle() {
-        return Component.translatable("container.repair");
+        return new TranslatableComponent("container.repair");
     }
 
     @Override
@@ -104,10 +116,10 @@ public class JermRepairCategory implements IRecipeCategory<IJeiAnvilRecipe> {
 
     private @Nullable Integer getCost(IRecipeSlotsView recipeSlotsView) {
         Optional<ItemStack> leftStack = recipeSlotsView.findSlotByName(leftSlotName)
-                .flatMap(IRecipeSlotView::getDisplayedItemStack);
+                .flatMap(slot -> slot.getDisplayedIngredient(VanillaTypes.ITEM_STACK));
 
         Optional<ItemStack> rightStack = recipeSlotsView.findSlotByName(rightSlotName)
-                .flatMap(IRecipeSlotView::getDisplayedItemStack);
+                .flatMap(slot -> slot.getDisplayedIngredient(VanillaTypes.ITEM_STACK));
 
         if (leftStack.isEmpty() || rightStack.isEmpty()) {
             return null;
@@ -128,7 +140,7 @@ public class JermRepairCategory implements IRecipeCategory<IJeiAnvilRecipe> {
 
     private void drawRepairCost(Minecraft minecraft, PoseStack poseStack, String text, int mainColor) {
         int width = minecraft.font.width(text);
-        int x = getWidth() - 2 - width;
+        int x = getBackground().getWidth() - 2 - width;
         int y = 27;
         minecraft.font.drawShadow(poseStack, text, x, y, mainColor);
     }

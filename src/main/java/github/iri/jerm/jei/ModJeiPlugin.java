@@ -8,7 +8,7 @@ import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.vanilla.*;
 import mezz.jei.api.registration.*;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextComponent;
 import net.minecraft.resources.*;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -107,7 +107,7 @@ public class ModJeiPlugin implements IModPlugin{
             }
 
             ItemStack renamedItem = itemStack.copy();
-            renamedItem.setHoverName(Component.literal("Amazing ").append(itemStack.getHoverName()));
+            renamedItem.setHoverName(new TextComponent("Amazing ").append(itemStack.getHoverName()));
 
             IJeiAnvilRecipe renameRecipe = vanillaRecipeFactory.createAnvilRecipe(
                     List.of(itemStack.copy()),

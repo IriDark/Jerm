@@ -30,7 +30,7 @@ base{
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 minecraft{
-    mappings channel: 'parchment', version: '2023.09.03-1.20.1'
+    mappings channel: 'parchment', version: '2022.08.14-1.19.2'
     copyIdeResources = true
     runs{
         configureEach{
@@ -72,6 +72,7 @@ mixin{
 
 sourceSets.main.resources{ srcDir 'src/generated/resources' }
 repositories{
+    maven { url "https://api.modrinth.com/maven" }
     maven { url "https://maven.blamejared.com"}
     maven { url "https://cursemaven.com"}
 }
@@ -79,12 +80,9 @@ repositories{
 dependencies{
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
+    compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}")
     runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
-    implementation fg.deobf("curse.maven:repair-override-1544105:8095070")
-    runtimeOnly fg.deobf("curse.maven:valoria-698244:8139302")
-    runtimeOnly fg.deobf("curse.maven:curios-309927:6418456")
-    runtimeOnly fg.deobf("curse.maven:geckolib-388172:8285794")
-    runtimeOnly fg.deobf("curse.maven:tridot-1239146:8067437")
+    runtimeOnly fg.deobf("maven.modrinth:farmers-delight:1.19.2-1.2.4")
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 }
 

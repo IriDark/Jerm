@@ -1,18 +1,21 @@
 package github.iri.jerm.jei;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import mezz.jei.api.constants.RecipeTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
-import mezz.jei.api.gui.ingredient.IRecipeSlotDrawablesView;
+import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotView;
-import mezz.jei.api.gui.placement.HorizontalAlignment;
-import mezz.jei.api.gui.widgets.IRecipeExtrasBuilder;
+import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
-import mezz.jei.api.recipe.category.AbstractRecipeCategory;
+import mezz.jei.api.recipe.RecipeIngredientRole;
+import mezz.jei.api.recipe.RecipeType;
+import mezz.jei.api.recipe.category.IRecipeCategory;
 import mezz.jei.api.recipe.vanilla.IJeiAnvilRecipe;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -22,18 +25,39 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Optional;
 
-public class JermRepairCategory extends AbstractRecipeCategory<IJeiAnvilRecipe> {
+public class JermRepairCategory implements IRecipeCategory<IJeiAnvilRecipe> {
     private static final String leftSlotName = "leftSlot";
     private static final String rightSlotName = "rightSlot";
 
+    private final IDrawable background;
+    private final IDrawable icon;
+
     public JermRepairCategory(IGuiHelper guiHelper) {
-        super(
-                ModJeiPlugin.JERM_REPAIR,
-                Component.translatable("container.repair"),
-                guiHelper.createDrawableItemLike(Blocks.ANVIL),
-                125,
-                38
-        );
+        var guiVanilla = new ResourceLocation("jei", "textures/gui/gui_vanilla.png");
+        background = guiHelper.drawableBuilder(guiVanilla, 0, 168, 125, 18)
+                .addPadding(0, 20, 0, 0)
+                .build();
+        this.icon = guiHelper.createDrawableItemStack(new ItemStack(Blocks.ANVIL));
+    }
+
+    @Override
+    public RecipeType<IJeiAnvilRecipe> getRecipeType() {
+        return ModJeiPlugin.JERM_REPAIR;
+    }
+
+    @Override
+    public Component getTitle() {
+        return Component.translatable("container.repair");
+    }
+
+    @Override
+    public IDrawable getBackground() {
+        return background;
+    }
+
+    @Override
+    public IDrawable getIcon() {
+        return icon;
     }
 
     @Override
@@ -42,18 +66,15 @@ public class JermRepairCategory extends AbstractRecipeCategory<IJeiAnvilRecipe> 
         List<ItemStack> rightInputs = recipe.getRightInputs();
         List<ItemStack> outputs = recipe.getOutputs();
 
-        IRecipeSlotBuilder leftInputSlot = builder.addInputSlot(1, 1)
+        IRecipeSlotBuilder leftInputSlot = builder.addSlot(RecipeIngredientRole.INPUT, 1, 1)
                 .addItemStacks(leftInputs)
-                .setStandardSlotBackground()
                 .setSlotName(leftSlotName);
 
-        IRecipeSlotBuilder rightInputSlot = builder.addInputSlot(50, 1)
+        IRecipeSlotBuilder rightInputSlot = builder.addSlot(RecipeIngredientRole.INPUT, 50, 1)
                 .addItemStacks(rightInputs)
-                .setStandardSlotBackground()
                 .setSlotName(rightSlotName);
 
-        IRecipeSlotBuilder outputSlot = builder.addOutputSlot(108, 1)
-                .setStandardSlotBackground()
+        IRecipeSlotBuilder outputSlot = builder.addSlot(RecipeIngredientRole.OUTPUT, 108, 1)
                 .addItemStacks(outputs);
 
         if (leftInputs.size() == rightInputs.size()) {
@@ -68,29 +89,20 @@ public class JermRepairCategory extends AbstractRecipeCategory<IJeiAnvilRecipe> 
     }
 
     @Override
-    public void createRecipeExtras(IRecipeExtrasBuilder builder, IJeiAnvilRecipe recipe, IFocusGroup focuses) {
-        builder.addRecipePlusSign().setPosition(27, 3);
-        builder.addRecipeArrow().setPosition(76, 1);
-
-        Integer cost = getCost(builder.getRecipeSlots());
+    public void draw(IJeiAnvilRecipe recipe, IRecipeSlotsView recipeSlotsView, PoseStack poseStack, double mouseX, double mouseY) {
+        Integer cost = getCost(recipeSlotsView);
         if (cost != null) {
             String costText = cost < 0 ? "err" : Integer.toString(cost);
-            Component text = Component.translatable("container.repair.cost", costText);
+            String text = I18n.get("container.repair.cost", costText);
 
             Minecraft minecraft = Minecraft.getInstance();
             LocalPlayer player = minecraft.player;
-            // Show red if the player doesn't have enough levels
-            int textColor = playerHasEnoughLevels(player, cost) ? 0xFF80FF20 : 0xFFFF6060;
-
-            builder.addText(text, getWidth() - 4, 10)
-                    .setPosition(2, 27)
-                    .setColor(textColor)
-                    .setShadow(true)
-                    .setTextAlignment(HorizontalAlignment.RIGHT);
+            int mainColor = playerHasEnoughLevels(player, cost) ? 0xFF80FF20 : 0xFFFF6060;
+            drawRepairCost(minecraft, poseStack, text, mainColor);
         }
     }
 
-    private @Nullable Integer getCost(IRecipeSlotDrawablesView recipeSlotsView) {
+    private @Nullable Integer getCost(IRecipeSlotsView recipeSlotsView) {
         Optional<ItemStack> leftStack = recipeSlotsView.findSlotByName(leftSlotName)
                 .flatMap(IRecipeSlotView::getDisplayedItemStack);
 
@@ -104,11 +116,6 @@ public class JermRepairCategory extends AbstractRecipeCategory<IJeiAnvilRecipe> 
         return ModJeiPlugin.findLevelsCost(leftStack.get(), rightStack.get());
     }
 
-    @Override
-    public @Nullable ResourceLocation getRegistryName(IJeiAnvilRecipe recipe) {
-        return recipe.getUid();
-    }
-
     private static boolean playerHasEnoughLevels(@Nullable LocalPlayer player, int cost) {
         if (player == null) {
             return true;
@@ -117,5 +124,12 @@ public class JermRepairCategory extends AbstractRecipeCategory<IJeiAnvilRecipe> 
             return true;
         }
         return cost < 40 && cost <= player.experienceLevel;
+    }
+
+    private void drawRepairCost(Minecraft minecraft, PoseStack poseStack, String text, int mainColor) {
+        int width = minecraft.font.width(text);
+        int x = getWidth() - 2 - width;
+        int y = 27;
+        minecraft.font.drawShadow(poseStack, text, x, y, mainColor);
     }
 }
